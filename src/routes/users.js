@@ -2,10 +2,18 @@ const express = require('express');
 const UsersController = require('../controllers/users');
 const User = require('../models/user');
 const message = require('../utils/message.json');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
 const usersController = new UsersController(User);
+
+function generateToken(params = {}){
+  return jwt.sign(params , authConfig.secret, {
+      expiresIn: 86400,
+  });
+}
+
 
 router.get('/', async (req, res) => {
   try {
@@ -30,8 +38,15 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    await usersController.create(req.body);
+    const user = await usersController.create(req.body);
     res.status(201).send(message.success.createUser);
+    
+    user.password = undefined;
+    
+    return  res.send({
+      user, 
+      token: generateToken({ id: user.id }),
+    })
   } catch (err) {
     res.status(400).send(err);
   }
